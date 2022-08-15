@@ -1,5 +1,5 @@
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import QApplication, QFrame
+from PyQt5.QtWidgets import QApplication, QFrame, QMessageBox
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -11,8 +11,11 @@ import os
 
 class UiForm(object):
     def setupUi(self, Form):
+        _translate = QtCore.QCoreApplication.translate
         Form.setObjectName("Form")
         Form.resize(454, 177)
+        Form.setWindowTitle(_translate("Form", "UniFi Login"))
+
         self.thread = {}
         self.pushButton = QtWidgets.QPushButton(Form)
         self.pushButton.setGeometry(QtCore.QRect(170, 120, 93, 28))
@@ -38,29 +41,49 @@ class UiForm(object):
         self.lineEdit_2.setGeometry(QtCore.QRect(80, 70, 351, 30))
         self.lineEdit_2.setObjectName("lineEdit")
 
-        self.retranslateui(Form)
+        self.labeledit()
+        self.lineedit_init()
+        self.check_input_func()
+        self.buttonedit()
         QtCore.QMetaObject.connectSlotsByName(Form)
 
-    def retranslateui(self, Form):
+    def buttonedit(self):
         _translate = QtCore.QCoreApplication.translate
-        Form.setWindowTitle(_translate("Form", "UniFi Login"))
         self.pushButton.setText(_translate("Form", "登入"))
+        self.pushButton.clicked.connect(self.buttonclick)
+
+    def labeledit(self):
+        _translate = QtCore.QCoreApplication.translate
         self.label.setText(_translate("Form", "帳號："))
-        self.lineEdit_2.setEchoMode(QtWidgets.QLineEdit.Password)
         self.label_2.setText(_translate("Form", "密碼："))
         self.label_3.setText(_translate("Form", "程式運行中，請勿關閉此視窗"))
-        self.pushButton.clicked.connect(self.onButtonClick)
+
+    def lineedit_init(self):
+        self.lineEdit.setPlaceholderText('請輸入Email')
+        self.lineEdit_2.setPlaceholderText('請輸入密碼')
+        self.lineEdit_2.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.lineEdit.textChanged.connect(self.check_input_func)
+        self.lineEdit_2.textChanged.connect(self.check_input_func)
+
+    def check_input_func(self):
+        if self.lineEdit.text() and self.lineEdit_2.text():
+            self.pushButton.setEnabled(True)
+        else:
+            self.pushButton.setEnabled(False)
 
 
-    def onButtonClick(self):
-        Email = self.lineEdit.text()
-        Password = self.lineEdit_2.text()
-        self.thread[1] = ThreadClass(email=Email, password=Password)
+    def message_box(self, result):
+        if result:
+            QMessageBox.information(self, 'Information', 'Log in Successfully!')
+        else:
+            QMessageBox.critical(self, 'Wrong', 'Wrong Username or Password!')
+
+    def buttonclick(self):
+        email = self.lineEdit.text()
+        password = self.lineEdit_2.text()
+        self.thread[1] = ThreadClass(email=email, password=password)
         self.thread[1].start()
         self.pushButton.setEnabled(False)
-
-
-
 
 
 class ThreadClass(QtCore.QThread):
@@ -70,7 +93,6 @@ class ThreadClass(QtCore.QThread):
         super(ThreadClass, self).__init__(parent)
         self.email = email
         self.password = password
-
 
     def run(self):
         Email = self.email
@@ -85,17 +107,29 @@ class ThreadClass(QtCore.QThread):
         chrome_options.add_argument('--disable-gpu')  # 關閉GPU 避免某些系統或是網頁出錯
 
         driver = webdriver.Chrome('./chromedriver', options=chrome_options)
-        driver.get(Url)
+        try:
+            driver.get(Url)
+        except:
+            _translate = QtCore.QCoreApplication.translate
+            mainFrame.label.close()
+            mainFrame.label_2.close()
+            mainFrame.lineEdit.close()
+            mainFrame.lineEdit_2.close()
+            mainFrame.pushButton.close()
+            mainFrame.label_3.setText(_translate("Form", "未連接上網路，關閉後再試一次"))
+            mainFrame.label_3.show()
+            time.sleep(60)
 
         # login unifi
         driver.find_element(By.NAME, "username").send_keys(Email)
         driver.find_element(By.NAME, "password").send_keys(Password)
         driver.find_element(By.NAME, "password").submit()
 
-        time.sleep(5)
+        driver.implicitly_wait(5)
 
         # getdata in this page
         def GetData(device_id):
+            global humidity, temperature, location
             try:
                 humidity = driver.find_elements(By.CSS_SELECTOR,
                                                 value="span[class='SensorReadingsState__ChipText-sc-1ygwv1j-2 cFlQgU']")[
@@ -107,10 +141,10 @@ class ThreadClass(QtCore.QThread):
                                             value="span[class='text-base__bIyDk3C7 text-size-caption__bIyDk3C7 "
                                                     "text-light-header__bIyDk3C7 truncate__bIyDk3C7 text-weight-normal__bIyDk3C7 "
                                                     "primaryHeading__bIyDk3C7 undefined']").text
+                print(humidity)
             except:
                 print(f"deviceID: {device_id} isn't exist !")
 
-            print(humidity)
             now = datetime.now()
             date = now.date()
             filename = f"{os.getcwd()}/{str(date)}.csv"
@@ -127,9 +161,8 @@ class ThreadClass(QtCore.QThread):
         try:
             driver.find_element(By.ID, "unifi-portal-styles")
             print("Login success")
+            # mainFrame.message_box(result=True)
             #切換為成功
-            # _translate = QtCore.QCoreApplication.translate
-            # mainFrame.pushButton.setText(_translate("Form", "登入成功"))
             mainFrame.label.close()
             mainFrame.label_2.close()
             mainFrame.lineEdit.close()
@@ -172,6 +205,7 @@ class ThreadClass(QtCore.QThread):
                     time.sleep(10)
         except:
             print("Login Fail")
+            # mainFrame.message_box(result=True)
             mainFrame.pushButton.setEnabled(True)
 
         self.any_signal.emit(0)
