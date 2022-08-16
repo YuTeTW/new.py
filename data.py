@@ -9,29 +9,31 @@ import time
 import csv
 import os
 
+
 class UiForm(object):
     def setupUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         Form.setObjectName("Form")
         Form.resize(454, 177)
-        Form.setWindowTitle(_translate("Form", "UniFi Login"))
+        Form.setWindowTitle(_translate("Form", "UniFi 登入"))
 
         self.thread = {}
+
         self.pushButton = QtWidgets.QPushButton(Form)
         self.pushButton.setGeometry(QtCore.QRect(170, 120, 93, 28))
         self.pushButton.setObjectName("pushButton")
 
-        self.label = QtWidgets.QLabel(Form)
-        self.label.setGeometry(QtCore.QRect(20, 5, 51, 61))
-        self.label.setObjectName("label")
+        self.accout_label = QtWidgets.QLabel(Form)
+        self.accout_label.setGeometry(QtCore.QRect(20, 5, 51, 61))
+        self.accout_label.setObjectName("label")
 
-        self.label_2 = QtWidgets.QLabel(Form)
-        self.label_2.setGeometry(QtCore.QRect(20, 55, 51, 61))
-        self.label_2.setObjectName("label")
+        self.password_label = QtWidgets.QLabel(Form)
+        self.password_label.setGeometry(QtCore.QRect(20, 55, 51, 61))
+        self.password_label.setObjectName("label")
 
-        self.label_3 = QtWidgets.QLabel(Form)
-        self.label_3.setGeometry(QtCore.QRect(100, 70, 293, 28))
-        self.label_3.setObjectName("label")
+        self.status_info_label = QtWidgets.QLabel(Form)
+        self.status_info_label.setGeometry(QtCore.QRect(100, 70, 293, 28))
+        self.status_info_label.setObjectName("label")
 
         self.lineEdit = QtWidgets.QLineEdit(Form)
         self.lineEdit.setGeometry(QtCore.QRect(80, 20, 351, 30))
@@ -47,6 +49,14 @@ class UiForm(object):
         self.buttonedit()
         QtCore.QMetaObject.connectSlotsByName(Form)
 
+        # self.centralwidget = QtWidgets.QWidget()
+        # self.label = QtWidgets.QLabel(self.centralwidget)
+        # self.label.setGeometry(QtCore.QRect(25, 25, 200, 200))
+        # Form.setCentralWidget(self.centralwidget)
+        # self.movie = QMovie("Spinner-1s-200px.gif")
+        # self.label.setMovie(self.movie)
+        # self.movie.start()
+
     def buttonedit(self):
         _translate = QtCore.QCoreApplication.translate
         self.pushButton.setText(_translate("Form", "登入"))
@@ -54,12 +64,12 @@ class UiForm(object):
 
     def labeledit(self):
         _translate = QtCore.QCoreApplication.translate
-        self.label.setText(_translate("Form", "帳號："))
-        self.label_2.setText(_translate("Form", "密碼："))
-        self.label_3.setText(_translate("Form", "程式運行中，請勿關閉此視窗"))
+        self.accout_label.setText(_translate("Form", "帳號："))
+        self.password_label.setText(_translate("Form", "密碼："))
+        self.status_info_label.setText(_translate("Form", "程式運行中，請勿關閉此視窗"))
 
     def lineedit_init(self):
-        self.lineEdit.setPlaceholderText('請輸入Email')
+        self.lineEdit.setPlaceholderText('請輸入帳號')
         self.lineEdit_2.setPlaceholderText('請輸入密碼')
         self.lineEdit_2.setEchoMode(QtWidgets.QLineEdit.Password)
         self.lineEdit.textChanged.connect(self.check_input_func)
@@ -72,34 +82,31 @@ class UiForm(object):
             self.pushButton.setEnabled(False)
 
 
-    def message_box(self, result):
-        if result:
-            QMessageBox.information(self, 'Information', 'Log in Successfully!')
-        else:
-            QMessageBox.critical(self, 'Wrong', 'Wrong Username or Password!')
+    # def message_box(self, result):
+    #     if result:
+    #         QMessageBox.about(self, '', '登入成功')
+    #     else:
+    #         QMessageBox.about(self, '', '登入成功')
 
     def buttonclick(self):
-        email = self.lineEdit.text()
+        account = self.lineEdit.text()
         password = self.lineEdit_2.text()
-        self.thread[1] = ThreadClass(email=email, password=password)
+        # self.message_box(True)
+        self.thread[1] = ThreadClass(account=account, password=password)
         self.thread[1].start()
         self.pushButton.setEnabled(False)
-
 
 class ThreadClass(QtCore.QThread):
     any_signal = QtCore.pyqtSignal(int)
 
-    def __init__(self, email, password, parent=None):
+    def __init__(self, account, password, parent=None):
         super(ThreadClass, self).__init__(parent)
-        self.email = email
+        self.account = account
         self.password = password
 
     def run(self):
-        Email = self.email
-        Password = self.password
-
-        Url = "https://unifi.ui.com"
-        DeviceUrl = f"{Url}/device/E063DA8A50B5000000000474FE440000000004A664EE000000005E1FCB67:26626280/protect/devices/"
+        url = "https://unifi.ui.com"
+        device_url = f"{url}/device/E063DA8A50B5000000000474FE440000000004A664EE000000005E1FCB67:26626280/protect/devices/"
 
         # chrome setting
         chrome_options = Options()
@@ -108,21 +115,21 @@ class ThreadClass(QtCore.QThread):
 
         driver = webdriver.Chrome('./chromedriver', options=chrome_options)
         try:
-            driver.get(Url)
+            driver.get(url)
         except:
             _translate = QtCore.QCoreApplication.translate
-            mainFrame.label.close()
-            mainFrame.label_2.close()
+            mainFrame.accout_label.close()
+            mainFrame.password_label.close()
             mainFrame.lineEdit.close()
             mainFrame.lineEdit_2.close()
             mainFrame.pushButton.close()
-            mainFrame.label_3.setText(_translate("Form", "未連接上網路，關閉後再試一次"))
-            mainFrame.label_3.show()
-            time.sleep(60)
+            mainFrame.status_info_label.setText(_translate("Form", "未連接上網路，關閉後再試一次"))
+            mainFrame.status_info_label.show()
+            time.sleep(5)
 
         # login unifi
-        driver.find_element(By.NAME, "username").send_keys(Email)
-        driver.find_element(By.NAME, "password").send_keys(Password)
+        driver.find_element(By.NAME, "username").send_keys(self.account)
+        driver.find_element(By.NAME, "password").send_keys(self.password)
         driver.find_element(By.NAME, "password").submit()
 
         driver.implicitly_wait(5)
@@ -163,21 +170,21 @@ class ThreadClass(QtCore.QThread):
             print("Login success")
             # mainFrame.message_box(result=True)
             #切換為成功
-            mainFrame.label.close()
-            mainFrame.label_2.close()
+            mainFrame.accout_label.close()
+            mainFrame.password_label.close()
             mainFrame.lineEdit.close()
             mainFrame.lineEdit_2.close()
             mainFrame.pushButton.close()
-            mainFrame.label_3.show()
+            mainFrame.status_info_label.show()
 
 
             while True:
                 try:
                     if os.path.isfile("deviceID.txt"):
-                        with open("deviceID.txt", "r") as ID_file:
-                            Id = ID_file.readlines()
-                            for device_id in Id:
-                                driver.get(f"{DeviceUrl}{str(device_id)}")
+                        with open("deviceID.txt", "r") as id_file:
+                            id_l = id_file.readlines()
+                            for device_id in id_l:
+                                driver.get(f"{device_url}{str(device_id)}")
                                 time.sleep(5)
                                 GetData(device_id)
                     else:
@@ -198,9 +205,9 @@ class ThreadClass(QtCore.QThread):
                         time.sleep(int(timeinterval) * 60 - 11)
                 except:
                     driver.delete_all_cookies()
-                    driver.get(Url)
-                    driver.find_element(By.NAME, "username").send_keys(Email)
-                    driver.find_element(By.NAME, "password").send_keys(Password)
+                    driver.get(url)
+                    driver.find_element(By.NAME, "username").send_keys(self.account)
+                    driver.find_element(By.NAME, "password").send_keys(self.password)
                     driver.find_element(By.NAME, "password").submit()
                     time.sleep(10)
         except:
@@ -218,10 +225,10 @@ class MainFrame(QFrame, UiForm):
         self.setupUi(self)
 
 if __name__ == '__main__':
+    os.system('taskkill /im chromedriver.exe /F')
+    os.system('taskkill /im chrome.exe /F')
     app = QApplication(sys.argv)
     mainFrame = MainFrame()
     mainFrame.show()
-    os.system('taskkill /im chromedriver.exe /F')
-    os.system('taskkill /im chrome.exe /F')
     sys.exit(app.exec_())
 #
